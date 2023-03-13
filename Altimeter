@@ -1,0 +1,46 @@
+#include <Wire.h>
+#include <Adafruit_BMP085.h>
+#include <SD.h>
+
+const int chipSelect = 10; // Chip select pin for the SD card reader
+
+File dataFile; // File object to store data
+
+Adafruit_BMP085 bmp;
+
+void setup() {
+  Serial.begin(9600);
+  if (!SD.begin(chipSelect)) { // Initialize SD card reader
+    Serial.println("SD card initialization failed!");
+    while (1) {}
+  }
+  if (!bmp.begin()) { // Initialize BMP180 sensor
+    Serial.println("Could not find a valid BMP180 sensor, check wiring!");
+    while (1) {}
+  }
+  dataFile = SD.open("RocketData.txt", FILE_WRITE); // Open file for writing
+  if (dataFile) {
+    Serial.println("Writing to file...");
+    dataFile.println("Altitude (ft)");
+    dataFile.close();
+  } else {
+    Serial.println("Error opening file!");
+  }
+}
+
+void loop() {
+  float altitudeMeters = bmp.readAltitude();
+  float altitudeFeet = altitudeMeters * 3.28084;
+  Serial.print("Altitude = ");
+  Serial.print(altitudeFeet);
+  Serial.println(" feet");
+  dataFile = SD.open("RocketData.txt", FILE_WRITE); // Reopen file for writing
+  if (dataFile) {
+    dataFile.print(altitudeFeet);
+    dataFile.print("\n");
+    dataFile.close();
+  } else {
+    Serial.println("Error opening file!");
+  }
+  delay(1000);
+}
