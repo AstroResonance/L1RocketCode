@@ -1,46 +1,99 @@
 #include <Wire.h>
 #include <Adafruit_BMP085.h>
 #include <SD.h>
-
-const int chipSelect = 10; // Chip select pin for the SD card reader
-
-File dataFile; // File object to store data
+#include <SPI.h>
+#define seaLevelPressure_hPa 1013.25
 
 Adafruit_BMP085 bmp;
 
+
+const int chip = 10;
+
+File rocketFile;
+
 void setup() {
+  // put your setup code here, to run once:
   Serial.begin(9600);
-  if (!SD.begin(chipSelect)) { // Initialize SD card reader
-    Serial.println("SD card initialization failed!");
-    while (1) {}
+  if (!bmp.begin()) {
+	Serial.println("Could not find a valid BMP085 sensor, check wiring!");
+	while (1) {}
   }
-  if (!bmp.begin()) { // Initialize BMP180 sensor
-    Serial.println("Could not find a valid BMP180 sensor, check wiring!");
-    while (1) {}
+  while (!Serial);
+
+  Serial.println("Initializing SD Card...");
+
+  if(!SD.begin(chip)){
+    Serial.println("Initialization failed.");
+    while(1);
   }
-  dataFile = SD.open("RocketData.txt", FILE_WRITE); // Open file for writing
-  if (dataFile) {
-    Serial.println("Writing to file...");
-    dataFile.println("Altitude (ft)");
-    dataFile.close();
-  } else {
-    Serial.println("Error opening file!");
-  }
+
+  Serial.println("Initialization done.");
+
+
 }
 
 void loop() {
-  float altitudeMeters = bmp.readAltitude();
-  float altitudeFeet = altitudeMeters * 3.28084;
-  Serial.print("Altitude = ");
-  Serial.print(altitudeFeet);
-  Serial.println(" feet");
-  dataFile = SD.open("RocketData.txt", FILE_WRITE); // Reopen file for writing
-  if (dataFile) {
-    dataFile.print(altitudeFeet);
-    dataFile.print("\n");
-    dataFile.close();
-  } else {
-    Serial.println("Error opening file!");
-  }
-  delay(1000);
+  // put your main code here, to run repeatedly:
+    Serial.print("Temperature = ");
+    Serial.print(bmp.readTemperature());
+    Serial.println(" *C");
+    
+    Serial.print("Pressure = ");
+    Serial.print(bmp.readPressure());
+    Serial.println(" Pa");
+
+    Serial.print("Altitude = ");
+    Serial.print(bmp.readAltitude());
+    Serial.println(" meters");
+
+    Serial.print("Pressure at sealevel (calculated) = ");
+    Serial.print(bmp.readSealevelPressure());
+    Serial.println(" Pa");
+
+    Serial.print("Real altitude = ");
+    Serial.print(bmp.readAltitude(seaLevelPressure_hPa * 100));
+    Serial.println(" meters");
+    
+    Serial.println();
+    delay(2000);
+
+
+    String dataString = "";
+
+    for(int pin = 4; pin < 6; pin ++){
+      int sensor = analogRead(pin);
+      dataString += String(sensor);
+    }
+
+    File rocketFile = SD.open("anything.txt", FILE_WRITE);
+
+    if(rocketFile){
+      rocketFile.print("Temperature = ");
+      rocketFile.print(bmp.readTemperature());
+      rocketFile.println(" *C");
+    
+      rocketFile.print("Pressure = ");
+      rocketFile.print(bmp.readPressure());
+      rocketFile.println(" Pa");
+
+      rocketFile.print("Altitude = ");
+      rocketFile.print(bmp.readAltitude());
+      rocketFile.println(" meters");
+
+      rocketFile.print("Pressure at sealevel (calculated) = ");
+      rocketFile.print(bmp.readSealevelPressure());
+      rocketFile.println(" Pa");
+
+      rocketFile.print("Real altitude = ");
+      rocketFile.print(bmp.readAltitude(seaLevelPressure_hPa * 100));
+      rocketFile.println(" meters");
+    
+      rocketFile.println();
+      rocketFile.close();
+    }
+    else{
+      Serial.println("Error opening RocketData.txt");
+    }
+
 }
+
